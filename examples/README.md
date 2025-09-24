@@ -37,29 +37,36 @@ The `basic-usage.ts` example demonstrates:
 
 After running the example, you'll find:
 
+- `examples/ecdsa-keys/publisher-private.pem` - Private key of publisher
+- `examples/ecdsa-keys/publisher-public.pem` - Public key of publisher
 - `examples/keys/private.pem` - Private key for signing
 - `examples/keys/public.pem` - Public key 
 - `examples/sample-extension/` - Complete Chrome extension
-- `examples/sample-extension.crx3` - Packed extension file
+- `examples/sample-extension.crx` - Packed extension file
 
 ## Installing the Example Extension
 
 1. Open Chrome
 2. Go to `chrome://extensions/`
 3. Enable "Developer mode" (toggle in top right)
-4. Drag and drop the `sample-extension.crx3` file onto the page
-5. The extension will be installed and ready to use!
+4. Drag and drop the `sample-extension.crx` file onto the page
+5. The extension will be installed but can not be used. The reason is the the publisher-private.pem we generated is not the Google private key :V. But it could be useful if
+you have your own browser customized from Chromeium
 
 ## CLI Example
 
 You can also use the CLI to pack the generated extension:
 
 ```bash
-# Generate keys
+# Generate keys, if you don't want generate new key or already have it, ignore this step
 crx3-pack generate-key -o ./examples/keys
+crx3-pack generate-key -o ./examples/ecdsa-keys --publisher
 
 # Pack the extension
-crx3-pack pack -i ./examples/sample-extension -o ./examples/sample-extension-cli.crx3 -k ./examples/keys/private.pem
+crx3-pack pack -i ./examples/sample-extension -o ./examples/sample-extension.crx -k ./examples/keys/private.pem
+
+# Pack the extension with publisher key also
+crx3-pack pack -i ./examples/sample-extension -o ./examples/sample-extension-publisher.crx -k ./examples/keys/private.pem --publisher-key ./examples/ecdsa-keys/publisher-private.pem
 
 # Get the extension ID
 crx3-pack get-crx-id -k ./examples/keys/public.pem
