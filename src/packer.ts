@@ -208,7 +208,7 @@ export class CRX3Packer {
       zipData          // archive
     ]);
 
-    // Create PSS signature with RSA-SHA256
+    // Create PKCS#1 v1.5 signature with RSA-SHA256 (to match Chrome's implementation)
     const sign = crypto.createSign('RSA-SHA256');
     sign.update(dataToSign);
     sign.end();
@@ -216,8 +216,7 @@ export class CRX3Packer {
     return sign.sign({
       key: privateKey,
       format: 'pem',
-      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-      saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST
+      padding: crypto.constants.RSA_PKCS1_PADDING
     });
   }
 

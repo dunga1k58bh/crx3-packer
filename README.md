@@ -238,6 +238,8 @@ Where:
 - `signed_header_data` is the encoded SignedData message containing the CRX ID
 - `archive` is the ZIP file content
 
+**Note**: While the CRX3 specification recommends PSS padding, Chrome's actual implementation uses PKCS#1 v1.5 padding for RSA signatures. This library matches Chrome's behavior to ensure compatibility.
+
 ## Security Notes
 
 - Keep your private key secure and never commit it to version control
