@@ -7,6 +7,7 @@ This directory contains example usage of the CRX3 Packer.
 1. Make sure you have built the project:
    ```bash
    npm run build
+   npm install -g .
    ```
 
 2. Run the TypeScript example directly:
