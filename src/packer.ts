@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import * as yauzl from 'yauzl';
 import * as yazl from 'yazl';
+import * as os from 'os';
 import { promisify } from 'util';
 import { crx_file } from './crx3.proto';
 
@@ -10,6 +11,8 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const stat = promisify(fs.stat);
 const readdir = promisify(fs.readdir);
+const mkdir = promisify(fs.mkdir);
+const rmdir = promisify(fs.rmdir);
 
 export interface PackOptions {
   /** Private key for signing (PEM format) */
@@ -117,10 +120,16 @@ export class CRX3Packer {
 
   /**
    * Pack from a zip file path
+   * Extracts the ZIP file to a temporary directory first, then packs it
    */
   async packFromZipFile(zipPath: string, options: PackOptions): Promise<void> {
-    const zipData = await readFile(zipPath);
-    await this.packZip(zipData, options);
+    const tempDir = await this.extractZipToTempDir(zipPath);
+    try {
+      await this.packDirectory(tempDir, options);
+    } finally {
+      // Clean up temporary directory
+      await this.removeDirectory(tempDir);
+    }
   }
 
   private async createZipFromDirectory(inputDir: string): Promise<Buffer> {
@@ -152,6 +161,91 @@ export class CRX3Packer {
         zipFile.addFile(itemPath, zipItemPath);
       }
     }
+  }
+
+  /**
+   * Extract a ZIP file to a temporary directory
+   */
+  private async extractZipToTempDir(zipPath: string): Promise<string> {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crx3-'));
+    
+    return new Promise((resolve, reject) => {
+      yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
+        if (err) return reject(err);
+        
+        zipfile.readEntry();
+        zipfile.on('entry', (entry) => {
+          const entryPath = path.join(tempDir, entry.fileName);
+          
+          if (/\/$/.test(entry.fileName)) {
+            // Directory entry
+            fs.mkdirSync(entryPath, { recursive: true });
+            zipfile.readEntry();
+          } else {
+            // File entry
+            fs.mkdirSync(path.dirname(entryPath), { recursive: true });
+            
+            zipfile.openReadStream(entry, (err, readStream) => {
+              if (err) return reject(err);
+              
+              const writeStream = fs.createWriteStream(entryPath);
+              readStream.pipe(writeStream);
+              
+              writeStream.on('close', () => {
+                zipfile.readEntry();
+              });
+              
+              writeStream.on('error', reject);
+              readStream.on('error', reject);
+            });
+          }
+        });
+        
+        zipfile.on('end', () => {
+          resolve(tempDir);
+        });
+        
+        zipfile.on('error', reject);
+      });
+    });
+  }
+
+  /**
+   * Remove a directory and all its contents
+   */
+  private async removeDirectory(dirPath: string): Promise<void> {
+    try {
+      // For Node.js 16+, use fs.rmSync with recursive option
+      if (fs.rmSync) {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+      } else {
+        // Fallback for older Node.js versions
+        await this.removeDirectoryRecursive(dirPath);
+      }
+    } catch (error) {
+      // Ignore errors during cleanup
+      console.warn(`Warning: Could not remove temporary directory ${dirPath}:`, error);
+    }
+  }
+
+  /**
+   * Recursively remove directory (fallback for older Node.js)
+   */
+  private async removeDirectoryRecursive(dirPath: string): Promise<void> {
+    const items = await readdir(dirPath);
+    
+    for (const item of items) {
+      const itemPath = path.join(dirPath, item);
+      const itemStat = await stat(itemPath);
+      
+      if (itemStat.isDirectory()) {
+        await this.removeDirectoryRecursive(itemPath);
+      } else {
+        fs.unlinkSync(itemPath);
+      }
+    }
+    
+    fs.rmdirSync(dirPath);
   }
 
   private getPublicKeyFromPrivate(privateKey: Buffer): Buffer {
