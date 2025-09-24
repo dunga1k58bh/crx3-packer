@@ -22,7 +22,7 @@
     "pack",
     "protobuf"
   ],
-  "author": "Your Name",
+  "author": "dunga1k58bh",
   "license": "MIT",
   "dependencies": {
     "protobufjs": "^7.2.5",
@@ -47,10 +47,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/crx3-packer.git"
+    "url": "git+https://github.com/dunga1k58bh/crx3-packer.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/crx3-packer/issues"
+    "url": "https://github.com/dunga1k58bh/crx3-packer/issues"
   },
-  "homepage": "https://github.com/yourusername/crx3-packer#readme"
+  "homepage": "https://github.com/dunga1k58bh/crx3-packer#readme"
 }
